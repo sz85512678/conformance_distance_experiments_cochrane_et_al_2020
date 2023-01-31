@@ -7,6 +7,7 @@ import itertools
 
 def concatenate(u, words, front=False):
     """Concatenates a letter with each word in an iterable."""
+    # This is weired, a function that returns the reverse concatenations
 
     for word in words:
         if front:
