@@ -9,6 +9,7 @@ Anomaly detection on streamed data. arXiv preprint arXiv:2006.03487.
 
 import itertools
 from joblib import Memory, Parallel, delayed
+import sys
 
 import iisignature
 import numpy as np
@@ -27,8 +28,13 @@ def _build_matrix(basis, E, enable_progress=True, **parallel_kwargs):
 
     try:
         A_eigvals, A_eigvecs = np.linalg.eig(A)
-    except LinAlgError:
+        if (min(np.abs(A_eigvals)) < 1e-10):
+            raise NotImplementedError("Cannot handle rank deficient covariance matrix yet")
+
+    except (NotImplementedError, np.linalg.LinAlgError) as error:
+        print(error)
         print("An exception occured when computing eigenvalues")
+        sys.exit(1)
 
     return A_eigvals, A_eigvecs
 
