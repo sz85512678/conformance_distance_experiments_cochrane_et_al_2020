@@ -18,6 +18,16 @@ from tqdm import tqdm
 from shuffle import shuffle
 from variance import _sig, _get_basis, _build_row
 
+def _sort_and_truncate_arrays_descending(a, b, eps):
+    # create an array of indices to sort by absolute value of a
+    idx = np.argsort(np.abs(a))[::-1]
+    # sort arrays a and b in descending order of absolute values of a
+    a, b = a[idx], b[idx]
+    # truncate arrays for absolute values of a smaller than eps
+    idx = np.abs(a) >= eps
+    a, b = a[idx], b[idx]
+    return a, b
+
 
 def _build_matrix(basis, E, enable_progress=True, **parallel_kwargs):
     A = np.zeros((len(basis), len(basis)))
@@ -28,6 +38,9 @@ def _build_matrix(basis, E, enable_progress=True, **parallel_kwargs):
 
     try:
         A_eigvals, A_eigvecs = np.linalg.eig(A)
+        A_eigvals, A_eigvecs = _sort_and_truncate_arrays_descending(
+            A_eigvals, A_eigvecs, 1e-9)
+
         if (min(np.abs(A_eigvals)) < 1e-10):
             raise NotImplementedError("Cannot handle rank deficient covariance matrix yet")
 
@@ -96,10 +109,10 @@ def variance_rp(paths, corpus, order, projected_dim, cache_dir=None,
     # R = S * \Sigma^{-1/2} * U^T, where A = U \Sigma U^T, and S is a scaled Gaussian matrix
     random_projection_mat = np.dot(
         np.dot(
-            np.random.randn(projected_dim, np.shape(sigs_order)[1]),  np.diag(
+            np.random.randn(projected_dim, np.shape(A_eigvals)[0]),  np.diag(
                 np.sqrt(np.reciprocal(A_eigvals)))
                 )
-        , A_eigvecs.T)
+        , A_eigvecs)
     projected_sigs = np.dot(sigs_order, random_projection_mat.T)   
 
     res = []
